@@ -4,6 +4,7 @@
 <head>
     <meta charset="utf-8">
     <title>BluePrintRenderer</title>
+
     <style>
         * {
             margin: 0;
@@ -23,50 +24,75 @@
 </head>
 <script src="./dist/main.js"></script>
 <script>
-    // document.addEventListener('DOMContentLoaded', function () {
-    //     prepare(document, "/tests/file_big.txt");
-    // });
+
 </script>
 
 <body>
-    <script src="https://cdn.jsdelivr.net/npm/vue"></script>
-    <div id="app">
-        <div class="flex justify-center">
-            <input hidden class="w-12" ref="up" type="file" name="fileToUpload" id="fileToUpload"
-                @change="previewImage" />
-            <p class="text-teal-900 hover:text-teal-500 cursor-default" v-if="uploadValue == 0 || uploadValue == 100"
-                @click="onClick()">
-                Upload
-                <!-- <UploadIcon /> -->
-            </p>
-            <div v-else>{{this.uploadValue}}%</div>
-        </div>
-    </div>
+
+    <main>
+        <select></select>
+        <input type="file" id="upload" />
+    </main>
+
+    <!-- The core Firebase JS SDK is always required and must be listed first -->
+    <script src="https://www.gstatic.com/firebasejs/7.14.3/firebase-app.js"></script>
+    <!-- TODO: Add SDKs for Firebase products that you want to use
+     https://firebase.google.com/docs/web/setup#available-libraries -->
+    <script src="https://www.gstatic.com/firebasejs/7.14.3/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.14.3/firebase-storage.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.14.3/firebase-analytics.js"></script>
 
     <script>
-        var app = new Vue({
-            el: '#app',
-            data: {
-                message: 'Hello Vue!'
-            },
-            created() {
-                // 
-            },
-            mounted() {
-                // prepare(document, "./tests/file_big.txt");
-            },
-            methods: {
-                onUpload(event) {
-                    const file = event.target.files[0];
-                    const storageRef = firebase
-                        .storage()
-                        .ref(`${file.name}`)
-                        .put(file);
-                    storageRef.snapshot.ref.getDownloadURL().then(url => {
-                        console.log(url);
+        // Your web app's Firebase configuration
+        var firebaseConfig = {
+            apiKey: "AIzaSyDGzrypBPF6vfA99EC78BNlGBS28aoLlvo",
+            authDomain: "bp-renderer.firebaseapp.com",
+            databaseURL: "https://bp-renderer.firebaseio.com",
+            projectId: "bp-renderer",
+            storageBucket: "bp-renderer.appspot.com",
+            messagingSenderId: "754234979597",
+            appId: "1:754234979597:web:b77b2fe5e086e73aaf2c44",
+            measurementId: "G-MQRD774GX3"
+        };
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        firebase.analytics();
+        const storage = firebase.storage();
+        const db = firebase.firestore();
+        let selectedUrl = null;
+
+        const selectBox = document.querySelector('select');
+        selectBox.onchange = (event) => {
+            selectedUrl = event.target.value;
+            const canvas = document.querySelector('canvas');
+            const body = document.querySelector('body');
+            body.removeChild(canvas);
+            prepare(document, selectedUrl);
+        }
+
+        db.collection('files').onSnapshot(resp => {
+            const files = resp.docs.map((item) => item.data());
+            selectBox.innerHTML = files.map((item) => `<option value="${item.url}">${item.name}</option>`)
+        })
+
+        document.querySelector("#upload").onchange = (event) => {
+            const file = event.target.files[0];
+            console.log(file);
+            const ref = storage.ref(file.name).put(file);
+            ref.on(`state_changed`, null, null, () => {
+                ref.snapshot.ref.getDownloadURL().then((url) => {
+                    db.collection('files').add({
+                        name: file.name,
+                        url
+                    }).then((resp) => {
                     })
-                },
-            }
+                })
+            })
+
+        }
+        const url = "tests/file.txt";
+        document.addEventListener('DOMContentLoaded', function () {
+            prepare(document, url);
         });
     </script>
 
